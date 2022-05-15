@@ -34,3 +34,8 @@ F6 : 27 91 49 55 126
 « . 194 171
 » : 194 187
   : 194 160 (espace insécable)
+
+  # TODO
+  Catch errors
+  check if subprocess.popen is independant from python process
+  

@@ -7,6 +7,7 @@
 #include <sysexits.h> // for exit status code 
 #include <sys/types.h> // for umask
 #include <sys/stat.h>  // for umask
+#include <errno.h>
 
 // history of character sizes
 // used to handle backspace
@@ -19,7 +20,12 @@ int history[100];
 int keypressed(int k,int fp) {
     char data[10];
     data[0]=k;
-    write(fp,data,1);
+    ssize_t count;
+    count = write(fp,data,1);
+    if (count == -1) {
+        fprintf( stderr, "Error is %s (errno=%d)\n", strerror( errno ), errno );
+        return -1;
+    }
     history[hindex] = 1;
     hindex++;
     return 0;
@@ -29,11 +35,20 @@ int keypressed(int k,int fp) {
 // c0, c1 : some characters like é are encoded by two bytes
 // fp : file handle where character will be saved
 int keypressed2(int c0, int c1, int fp) {
+    ssize_t count;
     char data[10];
     data[0]=c0;
-    write(fp,data,1);
+    count = write(fp,data,1);
+    if (count == -1) {
+        fprintf( stderr, "Error is %s (errno=%d)\n", strerror( errno ), errno );
+        return -1;
+    }
     data[0]=c1;
-    write(fp,data,1);
+    count = write(fp,data,1);
+    if (count == -1) {
+        fprintf( stderr, "Error is %s (errno=%d)\n", strerror( errno ), errno );
+        return -1;
+    }
     history[hindex] = 2;
     hindex++;
     return 0;
@@ -44,17 +59,37 @@ int keypressed2(int c0, int c1, int fp) {
 // fp : file handle where character will be saved
 int keypressed3(int c0, int c1, int c2, int fp) {
     char data[10];
+    ssize_t count;
     data[0]=c0;
-    write(fp,data,1);
+    count = write(fp,data,1);
+    if (count == -1) {
+        fprintf( stderr, "Error is %s (errno=%d)\n", strerror( errno ), errno );
+        return -1;
+    }
     data[0]=c1;
-    write(fp,data,1);
+    count = write(fp,data,1);
+    if (count == -1) {
+        fprintf( stderr, "Error is %s (errno=%d)\n", strerror( errno ), errno );
+        return -1;
+    }
     data[0]=c2;
-    write(fp,data,1);
+    count = write(fp,data,1);
+    if (count == -1) {
+        fprintf( stderr, "Error is %s (errno=%d)\n", strerror( errno ), errno );
+        return -1;
+    }
     history[hindex] = 3;
     hindex++;
     return 0;
 }
+int exiterror(int fp, struct termios *tty_opts_backup){
+    fprintf( stderr, "Error is %s (errno=%d)\n", strerror( errno ), errno );
+    close(fp);
 
+    // Restore previous TTY settings
+    tcsetattr(STDIN_FILENO, TCSANOW, tty_opts_backup);
+    exit(EX_IOERR);
+}
 int main(int argc, char *argv[]) {
     if (argc != 2){
         printf("Usage : inkey filename\r\n");
@@ -64,16 +99,7 @@ int main(int argc, char *argv[]) {
     struct termios tty_opts_backup, tty_opts_raw;
     char data[10];
     
-    // open file from arguments
-    // FIXME : need to give right access to everyone as the waveshare module writes file as root
-    // unset default umask
-    umask(0);
-    // open file with write permission for all
-    int fp = open(argv[1], O_RDWR | O_CREAT,S_IRWXU |S_IRWXG|S_IRWXO );
-    printf("Opening file %s",argv[1]);
-    // go to end of file
-    lseek(fp, 0, SEEK_END);
-
+    
     if (!isatty(STDIN_FILENO)) {
       printf("Error: stdin is not a TTY\n");
       exit(EX_IOERR);
@@ -87,6 +113,27 @@ int main(int argc, char *argv[]) {
     cfmakeraw(&tty_opts_raw);
     tcsetattr(STDIN_FILENO, TCSANOW, &tty_opts_raw);
 
+
+    // open file from arguments
+    // FIXME : need to give right access to everyone as the waveshare module writes file as root
+    // unset default umask
+    umask(0);
+    // open file with write permission for all
+    int fp = open(argv[1], O_RDWR | O_CREAT,S_IRWXU |S_IRWXG|S_IRWXO );
+    if (fp == -1) {
+        //fprintf( stderr, "Error is %s (errno=%d)\n", strerror( errno ), errno );
+        //exit(EX_IOERR);
+        //printf("1 - Error is %s (errno=%d)\n", strerror( errno ), errno );
+        exiterror(fp,&tty_opts_backup);
+    }
+    printf("Opening file %s",argv[1]);
+    // go to end of file
+    off_t offset;
+    offset = lseek(fp, 0, SEEK_END);
+    if (offset == -1) {
+        exiterror(fp,&tty_opts_backup);
+    }
+
     // some keys output several characters
     // e.g. : F1 is 4 chars -> 27 91 91 65
     int func=0,charsize=1,c0=0,c1=0,c2=0,c3=0,c4=0;
@@ -97,6 +144,10 @@ int main(int argc, char *argv[]) {
     // Read and print characters from stdin
     int c, i = 1;
     for (c = getchar(); c != 3 && c != 27; c = getchar()) {
+        if (c == EOF) {
+            perror("getchar error");
+            exiterror(fp,&tty_opts_backup);
+        }
         printf("%d. 0x%02x (0%02o) %d\r\n", i++, c, c,c);
         if (c==127 && hindex > 0) {
             hindex--;
@@ -106,7 +157,11 @@ int main(int argc, char *argv[]) {
             // e.g : a -> one byte
             // é -> two bytes
             int ksize = history[hindex];
-            lseek(fp,0-ksize,SEEK_CUR);
+            offset = lseek(fp,0-ksize,SEEK_CUR);
+            if (offset == -1) {
+                perror("lseek 1 error");
+                exiterror(fp,&tty_opts_backup);
+            }
             // SPACE
             data[0] = 32;
             // replace with a space in the file
@@ -114,13 +169,19 @@ int main(int argc, char *argv[]) {
                 write(fp,data,1);
             }
             // go back again
-            lseek(fp,0-ksize,SEEK_CUR);
-            
+            offset = lseek(fp,0-ksize,SEEK_CUR);
+            if (offset == -1) {
+                perror("lseek 2 error");
+                exiterror(fp,&tty_opts_backup);
+            }
         }
         else if (c==13) {
             printf("ENTER\r\n");
             // use line feed in unix system : ASCII CODE = 10
-            keypressed(10,fp);
+            if (keypressed(10,fp) == -1) {
+                perror("keypressed error");
+                exiterror(fp,&tty_opts_backup);
+            }
         }
         // F1 : 27 91 91 65
         // F2 : 27 91 91 66
@@ -147,10 +208,17 @@ int main(int argc, char *argv[]) {
 
             if (charsize == 1 ) { 
                 data[0] = c;
-                keypressed(c,fp);
+                if (keypressed(c,fp) == -1){
+                    perror("keypressed - char - error");
+                    exiterror(fp,&tty_opts_backup);
+                }
             }
             else if (charsize == 2 ) { 
-                keypressed2(c0,c,fp);
+                if (keypressed2(c0,c,fp)==-1) {
+                    perror("keypressed 2 error");
+                    exiterror(fp,&tty_opts_backup);
+                }
+
                 c0 = 0;
                 charsize = 1;
                 lastsize = 2;
@@ -161,7 +229,10 @@ int main(int argc, char *argv[]) {
                     c1 = c;
                 }
                 else {
-                    keypressed3(c0,c1,c,fp);
+                    if (keypressed3(c0,c1,c,fp) == -1) {
+                        perror("keypressed 3 error");
+                        exiterror(fp,&tty_opts_backup);
+                    }
                     c0 = 0;c1=0;
                     charsize = 1;
                     lastsize = 3;
@@ -179,7 +250,6 @@ int main(int argc, char *argv[]) {
     }
     
     close(fp);
-
     // Restore previous TTY settings
     tcsetattr(STDIN_FILENO, TCSANOW, &tty_opts_backup);
 
