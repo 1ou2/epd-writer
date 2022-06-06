@@ -17,7 +17,7 @@ from docmanager import DocManager
 
 class EPDPage:
     def __init__(self) -> None:
-        logging.basicConfig(level=logging.DEBUG)
+        logging.basicConfig(level=logging.ERROR)
         logging.info("PAGE")
         self.epd = EPD()
         logging.info("init and Clear")

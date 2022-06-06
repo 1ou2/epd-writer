@@ -3,7 +3,7 @@ import os
 REFRESH_RATE = 8
 CHAR_PER_LINE = 60
 NB_HISTORY_LINES = 5
-NB_MAX_LINES = 20
+NB_MAX_LINES = 10
 
 class Document:
     def __init__(self,path) -> None:
@@ -15,7 +15,7 @@ class Document:
         self.fullcontent = []
         self.displaycontent = []
         self.fitcontent = []
-        content = []
+        
         try:
             with open(self.path) as f:
                 self.fullcontent = f.readlines()
@@ -25,22 +25,26 @@ class Document:
         self.getfitcontent()
         
 
-    def getfitcontent(self):
-        self.fitcontent = []
-        for line in self.fullcontent:
+    # content : a list of lines - the full file
+    # startline : starting line to use for the display
+    def getDisplayContent(self,startline):
+        displaycontent = self.fullcontent[startline:]
+        print(displaycontent)
+        # fit lines to max size
+        fitcontent = []
+        for line in displaycontent:
             if len(line) <= CHAR_PER_LINE:
-                self.fitcontent.append(line)
+                fitcontent.append(line)
             else:
+                
                 for i in range(0,len(line),CHAR_PER_LINE):
-                    self.fitcontent.append(line[i:i+CHAR_PER_LINE])
+                    fitcontent.append(line[i:i+CHAR_PER_LINE])
                 if i+CHAR_PER_LINE < len(line):
-                    self.fitcontent.append(line[i+CHAR_PER_LINE:len(line)])
-        self.fitlen = len(self.fitcontent)
-        return self.fitcontent
+                    fitcontent.append(line[i+CHAR_PER_LINE:len(line)])
         if len(fitcontent) < NB_MAX_LINES:
             return fitcontent
         else:
-            return fitcontent[-NB_HISTORY_LINES]
+            return fitcontent[-NB_HISTORY_LINES:]
 
 
 class DocManager:
@@ -71,11 +75,12 @@ class DocManager:
     # startline : starting line to use for the display
     def getDisplayContent(self,content,startline):
         displaycontent = content[startline:]
+        print(displaycontent)
         # fit lines to max size
         fitcontent = []
         for line in displaycontent:
             if len(line) <= CHAR_PER_LINE:
-                fitcontent.append(license)
+                fitcontent.append(line)
             else:
                 
                 for i in range(0,len(line),CHAR_PER_LINE):
@@ -85,7 +90,7 @@ class DocManager:
         if len(fitcontent) < NB_MAX_LINES:
             return fitcontent
         else:
-            return fitcontent[-NB_HISTORY_LINES]
+            return fitcontent[-NB_HISTORY_LINES:]
 
     def getDoc(self,path):
         content = []
@@ -104,6 +109,8 @@ if __name__ == "__main__":
     longdoc = dm.getDoc("test/longtext.txt")
     print(longdoc.fulllen)
     print(longdoc.fitcontent)
+    fitc = longdoc.getDisplayContent(3)
+    print(fitc)
     
 
 

@@ -17,9 +17,11 @@ import subprocess
 from docmanager import DocManager
 
 REFRESH_RATE = 8
-CHAR_PER_LINE = 60
+CHAR_PER_LINE = 80
 NB_HISTORY_LINES = 5
 NB_MAX_LINES = 20
+BACKUP_KEY="/home/pi/.ssh/id_rsa"
+BACKUP_DIR = "pi@192.168.1.2:/home/pi/piwrite"
 
 class EPDWriter(EPDPage):
     def __init__(self,fname) -> None:
@@ -33,8 +35,6 @@ class EPDWriter(EPDPage):
         # fill = 0 -> black
         self.draw.rectangle((10, 420, 140, 470), fill = 0)
         self.draw.text((20, 430), 'ECHAP ', font = self.font24, fill = 255)
-        #self.draw.rectangle((160, 420, 300, 470), fill = 0)
-        #self.draw.text((165, 430), 'F2 OPEN', font = self.font24, fill = 255)
 
     def getContent(self):
         content = []
@@ -49,14 +49,15 @@ class EPDWriter(EPDPage):
     # content : a list of lines - the full file
     # startline : starting line to use for the display
     def getDisplayContent(self,content,startline):
+        print("gDC ",startline)
+        #print(content)
         displaycontent = content[startline:]
         # fit lines to max size
         fitcontent = []
         for line in displaycontent:
             if len(line) <= CHAR_PER_LINE:
-                fitcontent.append(license)
+                fitcontent.append(line)
             else:
-                
                 for i in range(0,len(line),CHAR_PER_LINE):
                     fitcontent.append(line[i:i+CHAR_PER_LINE])
                 if i+CHAR_PER_LINE < len(line):
@@ -64,66 +65,62 @@ class EPDWriter(EPDPage):
         if len(fitcontent) < NB_MAX_LINES:
             return fitcontent
         else:
-            return fitcontent[-NB_HISTORY_LINES]
+            return fitcontent[-NB_HISTORY_LINES:]
 
     def write(self):
         print("READY To type ")
-        tstart = time.time()
+        # substract refresh rate so that we start drawing immediately
+        tstart = time.time() - REFRESH_RATE
         tbegin = tstart
 
-        filecontent = self.getContent()
-        
         displaycontent = []
-        for line in reversed(filecontent):
-            if len(line) <= CHAR_PER_LINE:
-                displaycontent.insert(0,line)
-            # line is too long truncate it
-            else:
-                displaycontent.insert(0,line[-CHAR_PER_LINE:])
-                break
-        # only keep the last lines to display
-        if len(displaycontent) > NB_HISTORY_LINES:
-            displaycontent = displaycontent[0:NB_HISTORY_LINES]
-
-        endline = len(filecontent)
-        startline = endline - len(displaycontent)
-        text = ""
-        lines = [""]
-        lastrefresh = [""]
-        currentline = 0
+        # launch a separate process 
+        # - read from keyboard
+        # - write to file (self.fullpath)
+        # - process stopped either by Ctl-C or Echap key
         proc = subprocess.Popen(["/home/pi/epd-writer/inkey",self.fullpath])
         self.displayMenu()
-        for i,line in enumerate(displaycontent):
-            self.draw.text((10, 20*i), str(line), font = self.font18, fill = 0)
         self.display()
-        
-       
+        startline = 0
+        oldcontent = []
         while True:
             tcurrent = time.time()
+            
             if tcurrent - tstart > REFRESH_RATE:
+                # check if the inkey subprocess is still running
                 if proc.poll() is not None:
                     print("poll exit")
                     break
+                # read the whole file
                 filecontent = self.getContent()
-                newend= len(filecontent)
-                # we have more lines to display
-                if newend > endline:
-                    displaycontent = self.getDisplayContent(filecontent,startline)
-
-                if displaycontent:
+                # what should be displayed
+                # we have a limited number of lines available on the screen
+                displaycontent = self.getDisplayContent(filecontent,startline)
+                endline = len(filecontent)
+                if endline < NB_HISTORY_LINES:
+                    startline = 0
+                else:
+                    startline = endline - len(displaycontent)
+                    if startline < 0:
+                        startline = 0
+                # only refresh if content has changed
+                if displaycontent and oldcontent != displaycontent:
                     self.clearImage()
                     self.displayMenu()
                     for i,line in enumerate(displaycontent):
                         self.draw.text((10, 20*i), str(line), font = self.font18, fill = 0)
 
                     self.display()
+                    oldcontent = displaycontent
                     
                 tstart = time.time()
 
-            if tcurrent - tbegin > 60:
+            if tcurrent - tbegin > 600:
+                print("GLOBAL TIMEOUT ")
                 break
             time.sleep(.01)
-
+        cmd = "scp -i " + BACKUP_KEY + " " + self.fullpath + + " " + BACKUP_DIR 
+        os.system(cmd)
         
 if __name__ == "__main__":
 
