@@ -42,4 +42,12 @@ F6 : 27 91 49 55 126
 To enable backup to a remote ssh server, make sure to enable scp using key
 cd .ssh
 ssh-copy-id -i id_rsa user@BACKUP_IP
+
+# start program at boot
+Edit /etc/rc.local
+#!/bin/bash
+cd /home/pi/epd-writer
+# will run as root
+nohup python menu.py &
+exit 0
   
