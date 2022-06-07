@@ -1,18 +1,13 @@
 #!/usr/bin/python
 # -*- coding:utf-8 -*-
-import sys,re
-import os
-import logging
-import epdconfig
-from page import EPDPage
-from waveshare import EPD
+import re
+
 import configparser
 import time
-from PIL import Image,ImageDraw,ImageFont
-import traceback
-from keypress import KeyController
+
+
 from keysconfig import *
-from threading import Thread
+
 import subprocess
 from docmanager import DocManager
 
@@ -24,9 +19,9 @@ BACKUP_KEY = "/home/pi/.ssh/id_rsa"
 BACKUP_DIR = "pi@192.168.1.2:/home/pi/piwrite"
 KEYREADERPROG = "/home/pi/epd-writer/inkey"
 
-class EPDWriter(EPDPage):
+class TestWriter():
     def __init__(self,fname) -> None:
-        EPDPage.__init__(self)
+        self.doc = DocManager("test")
         self.fname = fname
         self.fullpath = self.doc.getFullPath(fname)
         self.lastcontent = False
@@ -46,11 +41,7 @@ class EPDWriter(EPDPage):
             self.backupdir = config["Backup"]["remotedir"]
         else:
             self.enableBackup = False
-    def displayMenu(self):
-        # fill = 255 -> white
-        # fill = 0 -> black
-        self.draw.rectangle((10, 420, 140, 470), fill = 0)
-        self.draw.text((20, 430), 'ECHAP ', font = self.font24, fill = 255)
+    
 
     # display statistics for text - word count, characters
     def displayStats(self,filecontent):
@@ -68,9 +59,10 @@ class EPDWriter(EPDPage):
             self.stats = True
 
         stattext = "total mots " + str(wc) + " - signes " +str(cc)+ " // session mots " + str(wc - self.wordcount)  + " - signes " +str(cc - self.charactercount)
-        self.draw.text((160, 425), self.fname, font = self.font18, fill = 0)
-        self.draw.text((160, 445), stattext, font = self.font18, fill = 0)
+        print(stattext)
 
+    # get file content
+    # returns an array of lines
     def getContent(self):
         content = []
         try:
@@ -81,8 +73,6 @@ class EPDWriter(EPDPage):
 
         return content
 
-    # adapt content to dispaly
-    # returns an array of lines 
     def getFitContent(self,content):
         # fit lines to max size
         fitcontent = []
@@ -99,7 +89,7 @@ class EPDWriter(EPDPage):
     # content : a list of lines - the full file
     # startline : starting line to use for the display
     def getDisplayContent(self,content,startline):
-        print("gDC ",startline)
+        print(f"gDC {startline}\n")
         #print(content)
         displaycontent = content[startline:]
         # fit lines to max size
@@ -117,19 +107,17 @@ class EPDWriter(EPDPage):
         else:
             return fitcontent[-NB_HISTORY_LINES:]
 
-    def write(self):
-        print("READY To type ")
-        # substract refresh rate so that we start drawing immediately
+    def pwrite(self):
         tstart = time.time() - REFRESH_RATE
         tbegin = tstart
-
+        fitcontent = []
+        displaycontent = []
         # launch a separate process 
         # - read from keyboard
         # - write to file (self.fullpath)
         # - process stopped either by Ctl-C or Echap key
-        proc = subprocess.Popen([KEYREADERPROG,self.fullpath])
-        self.displayMenu()
-        self.display()
+        #proc = subprocess.Popen([KEYREADERPROG,self.fullpath])
+        
         startline = 0
         oldcontent = []
         while True:
@@ -137,48 +125,86 @@ class EPDWriter(EPDPage):
             
             if tcurrent - tstart > REFRESH_RATE:
                 # check if the inkey subprocess is still running
-                if proc.poll() is not None:
-                    print("poll exit")
-                    break
+                #if proc.poll() is not None:
+                #    print("poll exit")
+                #    break
                 # read the whole file
                 filecontent = self.getContent()
-                # what should be displayed
-                # we have a limited number of lines available on the screen
                 # adapt content to screen size
                 fitcontent = self.getFitContent(filecontent)
                 # only keep lines after startline
                 filtercontent = fitcontent[startline:]
-                # we have too many lines to display
                 if len(filtercontent) > NB_MAX_LINES:
-                    # keep only a few lines to keep history of what was written
                     startline = len(fitcontent) - NB_HISTORY_LINES
                     filtercontent = fitcontent[startline:]
-                
                 # only refresh if content has changed
                 if filtercontent and oldcontent != filtercontent:
-                    self.clearImage()
-                    self.displayMenu()
-                    self.displayStats(filecontent)
+                
+                    #self.displayStats(filecontent)
                     for i,line in enumerate(filtercontent):
-                        self.draw.text((10, 20*i), str(line), font = self.font18, fill = 0)
-
-                    self.display()
+                        print(f"{i}-{line}***")
                     oldcontent = filtercontent
                     
                 tstart = time.time()
-
+            if tcurrent - tbegin > 100:
+                break
             time.sleep(.01)
+
+    def write(self):
+        print("READY To type ")
+        # substract refresh rate so that we start drawing immediately
+        tstart = time.time() - REFRESH_RATE
+        tbegin = tstart
+
+        displaycontent = []
+        # launch a separate process 
+        # - read from keyboard
+        # - write to file (self.fullpath)
+        # - process stopped either by Ctl-C or Echap key
+        #proc = subprocess.Popen([KEYREADERPROG,self.fullpath])
         
-        if self.enableBackup:
-            print("starting backup")
-            #backupProcess = subprocess.Popen(["scp","-i",BACKUP_KEY,self.fullpath,BACKUP_DIR])
-            backupProcess = subprocess.Popen(["scp","-i",self.backupkey,self.fullpath,self.backupdir])
-        else:
-            print("backup disabled")
+        startline = 0
+        oldcontent = []
+        while True:
+            tcurrent = time.time()
+            
+            if tcurrent - tstart > REFRESH_RATE:
+                # check if the inkey subprocess is still running
+                #if proc.poll() is not None:
+                #    print("poll exit")
+                #    break
+                # read the whole file
+                filecontent = self.getContent()
+                # what should be displayed
+                # we have a limited number of lines available on the screen
+                displaycontent = self.getDisplayContent(filecontent,startline)
+                print("\n------\n")
+                print(displaycontent)
+                print("\n------\n")
+                endline = len(filecontent)
+                if endline < NB_HISTORY_LINES:
+                    startline = 0
+                else:
+                    startline = endline - len(displaycontent)
+                    if startline < 0:
+                        startline = 0
+                # only refresh if content has changed
+                if displaycontent and oldcontent != displaycontent:
+                
+                    #self.displayStats(filecontent)
+                    for i,line in enumerate(displaycontent):
+                        print(f"{i}-{line}***")
+                    oldcontent = displaycontent
+                    
+                tstart = time.time()
+            if tcurrent - tbegin > 100:
+                print("TIME OUT !!!!")
+                break
+            time.sleep(.01)
         
 if __name__ == "__main__":
 
-    epdw = EPDWriter("mytest")
-    epdw.write()
+    epdw = TestWriter("06-06-forloop.txt")
+    epdw.pwrite()
     
     
