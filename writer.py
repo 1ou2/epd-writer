@@ -20,18 +20,21 @@ REFRESH_RATE = 8
 CHAR_PER_LINE = 80
 NB_HISTORY_LINES = 5
 NB_MAX_LINES = 20
-BACKUP_KEY="/home/pi/.ssh/id_rsa"
+BACKUP_KEY = "/home/pi/.ssh/id_rsa"
 BACKUP_DIR = "pi@192.168.1.2:/home/pi/piwrite"
 
 class EPDWriter(EPDPage):
-    def __init__(self,fname) -> None:
+    def __init__(self,fname,enableBackup=True) -> None:
         EPDPage.__init__(self)
         self.fname = fname
         self.fullpath = self.doc.getFullPath(fname)
         self.lastcontent = False
+        # session word count
         self.stats = False
         self.wordcount = 0
         self.charactercount = 0
+        # enable backup
+        self.enableBackup = enableBackup
 
     def displayMenu(self):
         # fill = 255 -> white
@@ -55,7 +58,8 @@ class EPDWriter(EPDPage):
             self.stats = True
 
         stattext = "total mots " + str(wc) + " - signes " +str(cc)+ " // session mots " + str(wc - self.wordcount)  + " - signes " +str(cc - self.charactercount)
-        self.draw.text((100, 430), stattext, font = self.font18, fill = 255)
+        self.draw.text((160, 425), self.fname, font = self.font18, fill = 0)
+        self.draw.text((160, 445), stattext, font = self.font18, fill = 0)
 
     def getContent(self):
         content = []
@@ -128,6 +132,7 @@ class EPDWriter(EPDPage):
                 if displaycontent and oldcontent != displaycontent:
                     self.clearImage()
                     self.displayMenu()
+                    self.displayStats(filecontent)
                     for i,line in enumerate(displaycontent):
                         self.draw.text((10, 20*i), str(line), font = self.font18, fill = 0)
 
@@ -140,8 +145,10 @@ class EPDWriter(EPDPage):
                 print("GLOBAL TIMEOUT ")
                 break
             time.sleep(.01)
-        cmd = "scp -i " + BACKUP_KEY + " " + self.fullpath + + " " + BACKUP_DIR 
-        os.system(cmd)
+        cmd = "scp -i " + BACKUP_KEY + " " + self.fullpath + " " + BACKUP_DIR 
+        if self.enableBackup:
+            backupProcess = subprocess.Popen(["scp","-i",BACKUP_KEY,self.fullpath,BACKUP_DIR])
+       
         
 if __name__ == "__main__":
 

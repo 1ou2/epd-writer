@@ -1,7 +1,7 @@
 #!/usr/bin/python
 # -*- coding:utf-8 -*-
 import sys
-import os
+import os,subprocess
 
 from writer import EPDWriter
 picdir = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'pic')
@@ -132,8 +132,8 @@ class EPDMenu(EPDPage):
 
     def onF4(self):
         epdconfig.module_exit()
-        os.system("shutdown -h now")
-
+        ret = subprocess.call(["shutdown","-h","now"])
+        print(ret)
 
     def onMainMenu(self):
         self.clearImage()
