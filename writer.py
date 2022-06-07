@@ -1,6 +1,6 @@
 #!/usr/bin/python
 # -*- coding:utf-8 -*-
-import sys
+import sys,re
 import os
 import logging
 import epdconfig
@@ -29,12 +29,33 @@ class EPDWriter(EPDPage):
         self.fname = fname
         self.fullpath = self.doc.getFullPath(fname)
         self.lastcontent = False
+        self.stats = False
+        self.wordcount = 0
+        self.charactercount = 0
 
     def displayMenu(self):
         # fill = 255 -> white
         # fill = 0 -> black
         self.draw.rectangle((10, 420, 140, 470), fill = 0)
         self.draw.text((20, 430), 'ECHAP ', font = self.font24, fill = 255)
+
+    # display statistics for text - word count, characters
+    def displayStats(self,filecontent):
+        # word count
+        wc = 0
+        # character count
+        cc = 0
+        for line in filecontent:
+            wc = wc + len(re.findall(r'\w+',line))
+            cc = cc + len(re.findall(r'.',line))
+        # initialize word count for this writing session
+        if self.stats is False:
+            self.wordcount = wc
+            self.charactercount = cc
+            self.stats = True
+
+        stattext = "total mots " + str(wc) + " - signes " +str(cc)+ " // session mots " + str(wc - self.wordcount)  + " - signes " +str(cc - self.charactercount)
+        self.draw.text((100, 430), stattext, font = self.font18, fill = 255)
 
     def getContent(self):
         content = []
