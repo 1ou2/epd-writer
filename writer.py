@@ -22,6 +22,7 @@ NB_HISTORY_LINES = 5
 NB_MAX_LINES = 20
 BACKUP_KEY = "/home/pi/.ssh/id_rsa"
 BACKUP_DIR = "pi@192.168.1.2:/home/pi/piwrite"
+KEYREADERPROG = "/home/pi/epd-writer/inkey"
 
 class EPDWriter(EPDPage):
     def __init__(self,fname) -> None:
@@ -112,7 +113,7 @@ class EPDWriter(EPDPage):
         # - read from keyboard
         # - write to file (self.fullpath)
         # - process stopped either by Ctl-C or Echap key
-        proc = subprocess.Popen(["/home/pi/epd-writer/inkey",self.fullpath])
+        proc = subprocess.Popen([KEYREADERPROG,self.fullpath])
         self.displayMenu()
         self.display()
         startline = 0
@@ -150,9 +151,6 @@ class EPDWriter(EPDPage):
                     
                 tstart = time.time()
 
-            if tcurrent - tbegin > 600:
-                print("GLOBAL TIMEOUT ")
-                break
             time.sleep(.01)
         
         if self.enableBackup:

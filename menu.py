@@ -57,49 +57,6 @@ class EPDMenu(EPDPage):
             epw.write()
         self.onMainMenu()
 
-    def backonF1(self):
-        print("F1")
-        self.drawPrompt("Filename")
-        self.display()
-        
-        print("READY To type ")
-        tstart = time.time()
-        text = ""
-        lastrefresh = ""
-        kc = KeyController()
-        while True:
-            k = kc.keypress()
-            if k== CONTROL_C:
-                break
-            elif k == ENTER:
-                break
-            elif k == BACKSPACE:
-                
-                if len(text) > 0:
-                    text = text[:-1]
-            # user did not press any key 
-            elif k == KEYTIMEOUT:                        
-                pass
-            elif len(k) == 1:
-                text = text + k[0]
-                
-            tcurrent = time.time()
-            if tcurrent - tstart > 3:
-                
-                # only refresh if something has changed
-                if text != lastrefresh:
-                    self.clearImage()
-                    self.drawMenu()
-                    self.drawPrompt("Filename")
-                    self.draw.text((310, 170), text, font = self.font18, fill = 0)
-                    self.display()
-                    lastrefresh = text
-                tstart = time.time()
-            time.sleep(.01)
-
-        epw = EPDWriter(text)
-        epw.write()
-
     def onF2(self):
         self.clearImage()
         self.drawMenu()
@@ -115,10 +72,15 @@ class EPDMenu(EPDPage):
             # user did not press any key 
             if k == KEYTIMEOUT:                        
                 pass
+            elif k == ECHAP:
+                self.onMainMenu()
             elif len(k) == 1:
-                print("opening file " + k[0])
-                idoc = int(k[0])
-                print("doc to open : " + docs[idoc])
+                print("opening file " + k[0] + "\n")
+                try:
+                    idoc = int(k[0])
+                except:
+                    self.onMainMenu()
+                print("doc to open : " + docs[idoc]+ "\n")
                 break
             time.sleep(.01)
         epw = EPDWriter(docs[int(k[0])])
