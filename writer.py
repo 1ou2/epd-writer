@@ -6,7 +6,7 @@ import logging
 import epdconfig
 from page import EPDPage
 from waveshare import EPD
-
+import configparser
 import time
 from PIL import Image,ImageDraw,ImageFont
 import traceback
@@ -24,7 +24,7 @@ BACKUP_KEY = "/home/pi/.ssh/id_rsa"
 BACKUP_DIR = "pi@192.168.1.2:/home/pi/piwrite"
 
 class EPDWriter(EPDPage):
-    def __init__(self,fname,enableBackup=True) -> None:
+    def __init__(self,fname) -> None:
         EPDPage.__init__(self)
         self.fname = fname
         self.fullpath = self.doc.getFullPath(fname)
@@ -33,9 +33,18 @@ class EPDWriter(EPDPage):
         self.stats = False
         self.wordcount = 0
         self.charactercount = 0
-        # enable backup
-        self.enableBackup = enableBackup
+        self.getConfig()
 
+    def getConfig(self):
+        # enable backup
+        config = configparser.ConfigParser()
+        config.read("settings.ini")
+        if config["Backup"]["enable"] == "yes":
+            self.enableBackup = True
+            self.backupkey = config["Backup"]["key"]
+            self.backupdir = config["Backup"]["remotedir"]
+        else:
+            self.enableBackup = False
     def displayMenu(self):
         # fill = 255 -> white
         # fill = 0 -> black
@@ -145,10 +154,13 @@ class EPDWriter(EPDPage):
                 print("GLOBAL TIMEOUT ")
                 break
             time.sleep(.01)
-        cmd = "scp -i " + BACKUP_KEY + " " + self.fullpath + " " + BACKUP_DIR 
+        
         if self.enableBackup:
-            backupProcess = subprocess.Popen(["scp","-i",BACKUP_KEY,self.fullpath,BACKUP_DIR])
-       
+            print("starting backup")
+            #backupProcess = subprocess.Popen(["scp","-i",BACKUP_KEY,self.fullpath,BACKUP_DIR])
+            backupProcess = subprocess.Popen(["scp","-i",self.backupkey,self.fullpath,self.backupdir])
+        else:
+            print("backup disabled")
         
 if __name__ == "__main__":
 
