@@ -4,7 +4,8 @@ REFRESH_RATE = 8
 CHAR_PER_LINE = 60
 NB_HISTORY_LINES = 5
 NB_MAX_LINES = 10
-
+# maximun number of files to list in open file menu
+MAX_LISTING = 15
 class Document:
     def __init__(self,path) -> None:
         self.path = path
@@ -60,8 +61,12 @@ class DocManager:
         self.files = os.listdir(self.docdir) 
 
     def getDocs(self):
-        # refresh list
-        self.files = os.listdir(self.docdir)
+        # list only files and not directories
+        self.files = list(file for file in os.listdir(self.docdir) if os.path.isfile(os.path.join(self.docdir,file)))
+        # sort by modification time : "-" to have from newest to oldest
+        self.files.sort(key=lambda x: -os.path.getmtime(os.path.join(self.docdir,x)))
+        if len(self.files) > MAX_LISTING:
+            self.files = self.files[0:MAX_LISTING]
         return self.files
 
     def newFile(self,name):
@@ -104,13 +109,15 @@ class DocManager:
         return doc        
 
 if __name__ == "__main__":
-    dm = DocManager()
+    dm = DocManager("test")
     docs = dm.getDocs()
-    longdoc = dm.getDoc("test/longtext.txt")
-    print(longdoc.fulllen)
-    print(longdoc.fitcontent)
-    fitc = longdoc.getDisplayContent(3)
-    print(fitc)
+    print(docs)
+    
+    #longdoc = dm.getDoc("test/longtext.txt")
+    #print(longdoc.fulllen)
+    #print(longdoc.fitcontent)
+    #fitc = longdoc.getDisplayContent(3)
+    #print(fitc)
     
 
 
