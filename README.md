@@ -43,11 +43,12 @@ To enable backup to a remote ssh server, make sure to enable scp using key
 cd .ssh
 ssh-copy-id -i id_rsa user@BACKUP_IP
 
-# start program at boot
-Edit /etc/rc.local
-#!/bin/bash
-cd /home/pi/epd-writer
-# will run as root
-nohup python menu.py &
-exit 0
+# start program 
+see .bashrc file
+
+# Splash
+splash images on startup and shutdown are located in pic directory
+mountain.bmp : startup image
+beach.bmp : shutdown image
+Need a 800x480 grayscale BMP image
   
