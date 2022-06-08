@@ -35,3 +35,7 @@ class EPDPage:
 
     def display(self):
         self.epd.display(self.epd.getbuffer(self.image))
+
+    def setImage(self,bmpfile):
+        self.image = Image.open(os.path.join(picdir, bmpfile))
+        self.draw = ImageDraw.Draw(self.image)

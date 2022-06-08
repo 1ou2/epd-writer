@@ -93,6 +93,12 @@ class EPDMenu(EPDPage):
         exit()
 
     def onF4(self):
+        self.setImage('beach.bmp')
+        
+        self.draw.rectangle((10, 10, 140, 40), fill = 0)
+        self.draw.text((20, 10), 'HALT', font = self.font24, fill = 255)
+        self.display()
+
         epdconfig.module_exit()
         ret = subprocess.call(["shutdown","-h","now"])
         print(ret)
