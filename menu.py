@@ -2,6 +2,7 @@
 # -*- coding:utf-8 -*-
 import sys
 import os,subprocess
+from reader import EPDReader
 
 from writer import EPDWriter
 picdir = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'pic')
@@ -18,6 +19,7 @@ import traceback
 from page import EPDPage
 from docmanager import DocManager, Document
 
+KEYREADERPROG = "/home/pi/epd-writer/readname"
 class EPDMenu(EPDPage):
     def __init__(self) -> None:
         EPDPage.__init__(self)
@@ -25,7 +27,7 @@ class EPDMenu(EPDPage):
 
     def drawPrompt(self,text=""):
         self.draw.text((160, 160), text+ " :", font = menu.font24, fill = 0)
-        self.draw.rectangle((300, 160, 700, 200), outline=0)
+        #self.draw.rectangle((300, 160, 700, 200), outline=0)
         
 
     def drawMenu(self):
@@ -44,17 +46,32 @@ class EPDMenu(EPDPage):
         print("F1")
         self.drawPrompt("Filename")
         self.display()
+
+        # launch a separate process 
+        # - read from keyboard
+        # - write to file (input.name)
+        # - process stopped either by Ctl-C or ENTER
+        proc = subprocess.Popen([KEYREADERPROG])
         
-        print("READY To type ")
-        tstart = time.time()
-        text = ""
-        lastrefresh = ""
-        filename = input("enter filename\n")
-        if filename:
-            self.draw.text((310, 170), filename, font = self.font18, fill = 0)
-            self.display()    
-            epw = EPDWriter(filename)
-            epw.write()
+        oldcontent = ""
+        while True:
+            # check if keyboard arrow program has exited
+            if proc.poll() is not None:
+                    print("poll exit")
+                    break
+            try:
+                with open("input.name") as f:
+                    content = f.read()
+            except (FileNotFoundError, PermissionError, OSError):
+                print("IO Error")
+
+            if content != oldcontent:
+                oldcontent = content
+                self.draw.text((310, 170), content, font = self.font18, fill = 0)
+                self.display()    
+            time.sleep(0.5)
+        epw = EPDWriter(content)
+        epw.write()
         self.onMainMenu()
 
     def onF2(self):
@@ -66,7 +83,7 @@ class EPDMenu(EPDPage):
         alphabet = ["a","b","c","d","e","f","g","h","i","j","k","l","m","n","o","p","q","r","s","t","u"]
         maxlen = 0
         for i,fname in enumerate(docs):
-            self.draw.text((50, 80+i*20), str(i) + "      | " + fname, font = self.font18, fill = 0)
+            self.draw.text((50, 80+i*20), str(i) + "       | " + fname, font = self.font18, fill = 0)
             if len(fname) > maxlen:
                 maxlen = len(fname)
         if maxlen < 20:
@@ -82,25 +99,43 @@ class EPDMenu(EPDPage):
         kc = KeyController()
         while True:
             k = kc.keypress()
+            mode = ""
             # user did not press any key 
             if k == KEYTIMEOUT:                        
                 pass
             elif k == ECHAP:
-                self.onMainMenu()
+                break
             elif len(k) == 1:
                 print("opening file " + k[0] + "\n")
-                try:
-                    idoc = int(k[0])
-                except:
-                    self.onMainMenu()
-                print("doc to open : " + docs[idoc]+ "\n")
+                strkey = k[0]
+                if strkey.isdigit():
+                    idoc = int(strkey)
+                    mode = "write"
+                    break
+                else:
+                    for i,letter in enumerate(alphabet):
+                        if strkey == letter:
+                            idoc = i
+                            mode = "read"
+                    break
+            else:
                 break
+                    
             time.sleep(.01)
-        epw = EPDWriter(docs[int(k[0])])
-        epw.write()
+        if mode == "write":
+            epw = EPDWriter(docs[idoc])
+            epw.write()
+        if mode == "read":
+            epr = EPDReader(docs[idoc])
+            epr.read()
         self.onMainMenu()
 
     def onF3(self):
+        self.setImage('beach.bmp')
+        
+        self.draw.rectangle((10, 10, 140, 40), fill = 0)
+        self.draw.text((20, 10), 'EXIT', font = self.font24, fill = 255)
+        self.display()
         # EXIT
         epdconfig.module_exit()
         exit()

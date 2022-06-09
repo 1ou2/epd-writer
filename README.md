@@ -51,4 +51,10 @@ splash images on startup and shutdown are located in pic directory
 mountain.bmp : startup image
 beach.bmp : shutdown image
 Need a 800x480 grayscale BMP image
+
+# Reading keyboard input
+When writing text, keyboard strokes are captured through C programs
+gcc -o inkey inkey.c
+gcc -o arrowkeys arrowkeys.c
+
   
