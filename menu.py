@@ -63,8 +63,21 @@ class EPDMenu(EPDPage):
         #self.drawPrompt("Filename")
         dm = DocManager()
         docs = dm.getDocs()
+        alphabet = ["a","b","c","d","e","f","g","h","i","j","k","l","m","n","o","p","q","r","s","t","u"]
+        maxlen = 0
         for i,fname in enumerate(docs):
-            self.draw.text((50, 70+i*20), str(i) + " - " + fname, font = self.font18, fill = 0)
+            self.draw.text((50, 80+i*20), str(i) + "      | " + fname, font = self.font18, fill = 0)
+            if len(fname) > maxlen:
+                maxlen = len(fname)
+        if maxlen < 20:
+            offset = 200
+        else:
+            offset = 400        
+        self.draw.text((50, 60), "EDIT |", font = self.font18, fill = 0)
+        self.draw.text((150, 60), "FILE", font = self.font18, fill = 0)
+        self.draw.text((150+offset, 60), " | READ", font = self.font18, fill = 0)
+        for i,fname in enumerate(docs):
+            self.draw.text((150 +offset, 80+i*20), " | " + alphabet[i], font = self.font18, fill = 0)
         self.display()
         kc = KeyController()
         while True:
