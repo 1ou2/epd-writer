@@ -167,7 +167,11 @@ int main(int argc, char *argv[]) {
             data[0] = 32;
             // replace with a space in the file
             for(i=0;i<ksize;i++){
-                write(fp,data,1);
+                count = write(fp,data,1);
+                if (count == -1) {
+                    fprintf( stderr, "Error is %s (errno=%d)\n", strerror( errno ), errno );
+                    return -1;
+                }
             }
             // go back again
             offset = lseek(fp,0-ksize,SEEK_CUR);
