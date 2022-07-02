@@ -24,6 +24,7 @@ https://stackoverflow.com/questions/7741930/getchar-and-stdin
 gcc inread.c -o inread
 
 # Functions keys
+```
 F1 : 27 91 91 65
 F2 : 27 91 91 66
 F3 : 
@@ -36,7 +37,7 @@ F6 : 27 91 49 55 126
 « . 194 171
 » : 194 187
   : 194 160 (espace insécable)
-
+```
 
 # Backup
 To enable backup to a remote ssh server, make sure to enable scp using key
