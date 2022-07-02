@@ -55,7 +55,8 @@ Need a 800x480 grayscale BMP image
 
 # Reading keyboard input
 When writing text, keyboard strokes are captured through C programs
-gcc -o inkey inkey.c
+```bash gcc -o inkey inkey.c
 gcc -o arrowkeys arrowkeys.c
-
+gcc -o readname readname.c
+```
   

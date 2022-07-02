@@ -138,7 +138,7 @@ class EPDWriter(EPDPage):
             if tcurrent - tstart > REFRESH_RATE:
                 # check if the inkey subprocess is still running
                 if proc.poll() is not None:
-                    print("poll exit")
+                    print("inkey process exit")
                     break
                 # read the whole file
                 filecontent = self.getContent()

@@ -20,6 +20,8 @@ from page import EPDPage
 from docmanager import DocManager, Document
 
 KEYREADERPROG = "/home/pi/epd-writer/readname"
+INPUTFILE = "input.name"
+
 class EPDMenu(EPDPage):
     def __init__(self) -> None:
         EPDPage.__init__(self)
@@ -51,6 +53,8 @@ class EPDMenu(EPDPage):
         # - read from keyboard
         # - write to file (input.name)
         # - process stopped either by Ctl-C or ENTER
+        if os.path.isfile(INPUTFILE):
+            os.remove(INPUTFILE)
         proc = subprocess.Popen([KEYREADERPROG])
         
         oldcontent = ""
@@ -60,10 +64,11 @@ class EPDMenu(EPDPage):
                     print("poll exit")
                     break
             try:
-                with open("input.name") as f:
+                with open(INPUTFILE) as f:
                     content = f.read()
             except (FileNotFoundError, PermissionError, OSError):
                 print("IO Error")
+                content = ""
 
             if content != oldcontent:
                 oldcontent = content

@@ -140,7 +140,7 @@ int main(int argc, char *argv[]) {
     int func=0,charsize=1,c0=0,c1=0,c2=0,c3=0,c4=0;
     // store for backspace
     int lastsize=1;
-    
+    int count = 0;
     
     // Read and print characters from stdin
     int c, i = 1;
@@ -149,7 +149,7 @@ int main(int argc, char *argv[]) {
             perror("getchar error");
             exiterror(fp,&tty_opts_backup);
         }
-        printf("%d. 0x%02x (0%02o) %d\r\n", i++, c, c,c);
+        //printf("%d. 0x%02x (0%02o) %d\r\n", i++, c, c,c);
         if (c==127 && hindex > 0) {
             hindex--;
             printf("Backspace %d\r\n",history[hindex]);

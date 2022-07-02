@@ -1,3 +1,7 @@
+/*
+*  Read one word from keyboard.
+*  store current keyboard strokes in input.name file
+*/
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>   // STDIN_FILENO, isatty(), ttyname()
