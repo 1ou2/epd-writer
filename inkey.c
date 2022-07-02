@@ -93,9 +93,10 @@ int exiterror(int fp, struct termios *tty_opts_backup){
 int main(int argc, char *argv[]) {
     if (argc != 2){
         printf("Usage : inkey filename\r\n");
+        printf("Version : 1.0\n");
         exit(EX_USAGE);
     }
-
+    
     struct termios tty_opts_backup, tty_opts_raw;
     char data[10];
     
