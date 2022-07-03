@@ -9,11 +9,43 @@
 #include <sys/stat.h>  // for umask
 #include <errno.h>
 
+#define MAX_HIST 20
 // history of character sizes
 // used to handle backspace
 int hindex = 0;
-int history[100];
 
+int history[MAX_HIST];
+
+void printHistory(void) {
+    printf("History index %d \r\n",hindex);
+    int i = 0;
+    for (i =0;i < MAX_HIST;i++) {
+        printf(" %d ",history[i]);
+    }
+}
+void setHistory(int value) {
+    if (hindex < MAX_HIST) {
+        history[hindex] = value;
+        hindex++;
+    }
+    // only keep half of history and reset the rest
+    else {
+        printf("History is full \r\n");
+        //printHistory();
+        int j = 0;
+        int i = 0;
+        // copy second half of history in 
+        for(i=MAX_HIST/2;i<MAX_HIST;i++) {
+            history[j] = history[i];
+            history[i] =0;
+            j++;
+        }
+        hindex = j;
+        history[hindex] = value;
+        hindex++;
+        //printHistory();
+    }
+}
 // one key was pressed 
 // k : the value of the key
 // fp : file handle where character will be saved
@@ -26,8 +58,8 @@ int keypressed(int k,int fp) {
         fprintf( stderr, "Error is %s (errno=%d)\n", strerror( errno ), errno );
         return -1;
     }
-    history[hindex] = 1;
-    hindex++;
+    setHistory(1);
+    
     return 0;
 }
 
@@ -49,8 +81,7 @@ int keypressed2(int c0, int c1, int fp) {
         fprintf( stderr, "Error is %s (errno=%d)\n", strerror( errno ), errno );
         return -1;
     }
-    history[hindex] = 2;
-    hindex++;
+    setHistory(2);
     return 0;
 }
 
@@ -78,8 +109,7 @@ int keypressed3(int c0, int c1, int c2, int fp) {
         fprintf( stderr, "Error is %s (errno=%d)\n", strerror( errno ), errno );
         return -1;
     }
-    history[hindex] = 3;
-    hindex++;
+    setHistory(3);
     return 0;
 }
 int exiterror(int fp, struct termios *tty_opts_backup){
@@ -91,6 +121,7 @@ int exiterror(int fp, struct termios *tty_opts_backup){
     exit(EX_IOERR);
 }
 int main(int argc, char *argv[]) {
+    
     if (argc != 2){
         printf("Usage : inkey filename\r\n");
         printf("Version : 1.0\n");
@@ -119,15 +150,23 @@ int main(int argc, char *argv[]) {
     // FIXME : need to give right access to everyone as the waveshare module writes file as root
     // unset default umask
     umask(0);
-    // open file with write permission for all
-    int fp = open(argv[1], O_RDWR | O_CREAT,S_IRWXU |S_IRWXG|S_IRWXO );
+    int fp = 0;
+    if (argc != 2){
+        printf("Usage : inkey filename\r\n");
+        printf("using default.txt\r\n");
+        fp = open("default.txt", O_RDWR | O_CREAT,S_IRWXU |S_IRWXG|S_IRWXO );
+    } else {
+        // open file with write permission for all
+        fp = open(argv[1], O_RDWR | O_CREAT,S_IRWXU |S_IRWXG|S_IRWXO );
+    }
     if (fp == -1) {
         //fprintf( stderr, "Error is %s (errno=%d)\n", strerror( errno ), errno );
         //exit(EX_IOERR);
         //printf("1 - Error is %s (errno=%d)\n", strerror( errno ), errno );
         exiterror(fp,&tty_opts_backup);
     }
-    printf("Opening file %s",argv[1]);
+    printf("Opening file %s \r\n",argv[1]);
+    perror("perror test\r\n");
     // go to end of file
     off_t offset;
     offset = lseek(fp, 0, SEEK_END);
@@ -152,7 +191,7 @@ int main(int argc, char *argv[]) {
         //printf("%d. 0x%02x (0%02o) %d\r\n", i++, c, c,c);
         if (c==127 && hindex > 0) {
             hindex--;
-            printf("Backspace %d\r\n",history[hindex]);
+            //printf("Backspace %d\r\n",history[hindex]);
             // go back with lseek
             // but depending on character number of bytes varies
             // e.g : a -> one byte
@@ -181,7 +220,7 @@ int main(int argc, char *argv[]) {
             }
         }
         else if (c==13) {
-            printf("ENTER\r\n");
+            //printf("ENTER\r\n");
             // use line feed in unix system : ASCII CODE = 10
             if (keypressed(10,fp) == -1) {
                 perror("keypressed error");
@@ -253,7 +292,7 @@ int main(int argc, char *argv[]) {
     else if (c== 27) {
         printf("You typed ECHAP. Exiting.\r\n");
     }
-    
+    printf("INKEY program exit.\r\n");
     close(fp);
     // Restore previous TTY settings
     tcsetattr(STDIN_FILENO, TCSANOW, &tty_opts_backup);

@@ -1,5 +1,6 @@
 # epd-writer
-Typewriter using e-ink technology
+Typewriter using e-ink technology. A low-tech, high latency typewriter.
+
 
 # key binding
 Source : https://askubuntu.com/questions/147128/change-default-tty-shortcut
@@ -55,8 +56,13 @@ Need a 800x480 grayscale BMP image
 
 # Reading keyboard input
 When writing text, keyboard strokes are captured through C programs
-```bash gcc -o inkey inkey.c
+```bash 
+gcc -o inkey inkey.c
 gcc -o arrowkeys arrowkeys.c
 gcc -o readname readname.c
 ```
+
+- INKEY : Used to capture text when writing a new file.
+- READNAME : Used to capture filename, when creating a new file (F1)
+- ARROWKEYS : Used to navigate when reading a file (F2)
   

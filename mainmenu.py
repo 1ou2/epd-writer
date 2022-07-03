@@ -75,8 +75,15 @@ class EPDMenu(EPDPage):
                 self.draw.text((310, 170), content, font = self.font18, fill = 0)
                 self.display()    
             time.sleep(0.5)
-        epw = EPDWriter(content)
-        epw.write()
+        try:
+            with open(INPUTFILE) as f:
+                content = f.read()
+                epw = EPDWriter(content)
+                epw.write()
+        except (FileNotFoundError, PermissionError, OSError):
+            print("IO Error")
+            content = ""
+        
         self.onMainMenu()
 
     def onF2(self):
