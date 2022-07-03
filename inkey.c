@@ -9,7 +9,7 @@
 #include <sys/stat.h>  // for umask
 #include <errno.h>
 
-#define MAX_HIST 20
+#define MAX_HIST 400
 // history of character sizes
 // used to handle backspace
 int hindex = 0;
@@ -30,7 +30,7 @@ void setHistory(int value) {
     }
     // only keep half of history and reset the rest
     else {
-        printf("History is full \r\n");
+        //printf("History is full \r\n");
         //printHistory();
         int j = 0;
         int i = 0;
