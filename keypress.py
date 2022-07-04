@@ -87,7 +87,7 @@ class KeyController:
                     ret.append(c)
                     c = sys.stdin.read(1)
             else:
-                print("TIMEOUT on keypressed")
+                #print("TIMEOUT on keypressed")
                 ret.append(KEYTIMEOUT[0])
         #except KeyboardInterrupt:
         #    ret.append('\x03')

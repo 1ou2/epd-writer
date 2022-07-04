@@ -166,7 +166,6 @@ int main(int argc, char *argv[]) {
         exiterror(fp,&tty_opts_backup);
     }
     printf("Opening file %s \r\n",argv[1]);
-    perror("perror test\r\n");
     // go to end of file
     off_t offset;
     offset = lseek(fp, 0, SEEK_END);
