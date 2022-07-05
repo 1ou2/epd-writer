@@ -34,6 +34,7 @@ class EPDWriter(EPDPage):
         self.stats = False
         self.wordcount = 0
         self.charactercount = 0
+        self.startTime = time.time()
         self.getConfig()
 
     def getConfig(self):
@@ -68,8 +69,32 @@ class EPDWriter(EPDPage):
             self.stats = True
 
         stattext = "total mots " + str(wc) + " - signes " +str(cc)+ " // session mots " + str(wc - self.wordcount)  + " - signes " +str(cc - self.charactercount)
-        self.draw.text((160, 425), self.fname, font = self.font18, fill = 0)
+        self.draw.text((160, 425), self.fname + " - " + self.getTimer(), font = self.font18, fill = 0)
         self.draw.text((160, 445), stattext, font = self.font18, fill = 0)
+
+    # display elapsed time for this writing session
+    def getTimer(self):
+        current = time.time()
+        duration = self.startTime - current
+        if duration < 60:
+            seconds = duration
+            minutes = 0
+            hours = 0
+        elif duration < 3600:
+            minutes = duration//60
+            seconds = duration%60
+            hours = 0
+        else:
+            hours = duration //3600
+            remainder = duration % 3600
+            if remainder > 60:
+                minutes = remainder//60
+                seconds = remainder % 60
+            else:
+                minutes = 0
+                seconds = remainder
+        strtime = '%02d:%02d:%02d' % (hours, minutes, seconds)
+        return strtime
 
     def getContent(self):
         content = []
@@ -132,6 +157,7 @@ class EPDWriter(EPDPage):
         self.display()
         startline = 0
         oldcontent = []
+        self.startTime = time.time()
         while True:
             tcurrent = time.time()
             

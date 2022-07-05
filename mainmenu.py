@@ -3,7 +3,7 @@
 import sys
 import os,subprocess
 from reader import EPDReader
-
+import datetime
 from writer import EPDWriter
 picdir = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'pic')
 
@@ -55,6 +55,27 @@ class EPDMenu(EPDPage):
         # - process stopped either by Ctl-C or ENTER
         if os.path.isfile(INPUTFILE):
             os.remove(INPUTFILE)
+
+        dm = DocManager()
+        docs = dm.getDocs()
+        # default document name is current date YYYY-MM-DD
+        today = str(datetime.date.today())+".txt"
+        
+        # we already have a doc with today name
+        if today in docs:
+            # try 10 times
+            for i in range(10):
+                newname = today + "-" + str(i)
+                if newname not in docs:
+                    today = newname
+                    break
+        print("today is "+today)
+        try:
+            with open(INPUTFILE,'w') as f:
+                f.write(today)
+        except (FileNotFoundError, PermissionError, OSError):
+            print("Cannot initialize filename with date")
+              
         proc = subprocess.Popen([KEYREADERPROG])
         
         oldcontent = ""
@@ -77,7 +98,7 @@ class EPDMenu(EPDPage):
             time.sleep(0.5)
         try:
             with open(INPUTFILE) as f:
-                content = f.read()
+                content = f.read().strip()
                 epw = EPDWriter(content)
                 epw.write()
         except (FileNotFoundError, PermissionError, OSError):

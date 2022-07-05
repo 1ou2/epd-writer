@@ -100,15 +100,15 @@ int exiterror(int fp, struct termios *tty_opts_backup){
 * program exist after ENTER or CTL-C
 */
 int main(int argc, char *argv[]) {
-    
+    /*
     int result = remove("input.name");
-
     if (result == 0)
         printf("input.name file deleted successfully. \n");
     else
     {
         printf("Unable to delete the file. \n");
     }
+    */
     struct termios tty_opts_backup, tty_opts_raw;
     char data[10];
     
@@ -131,19 +131,28 @@ int main(int argc, char *argv[]) {
     // FIXME : need to give right access to everyone as the waveshare module writes file as root
     // unset default umask
     umask(0);
-    // open file with write permission for all
-    // O_WRONLY | O_CREAT | O_TRUNC : overwrite file
-    int fp = open("input.name", O_WRONLY | O_CREAT | O_TRUNC,S_IRWXU |S_IRWXG|S_IRWXO );
+    // S_IRWXU |S_IRWXG|S_IRWXO : open file with write permission for all
+    // O_WRONLY  overwrite file
+    // O_CREAT  : create file if not exists
+    // O_TRUNC : truncate file (reset file)
+    // O_RDWR | O_APPEND : append to file
+    // 
+    // - we do not want to use append mode, otherwise it breaks our backspace function as we use lseek (SEEK_CUR) 
+    // and append mode moves the cursor forward 
+    // - we do not use TRUNC, because the file is pre-filled with a default value.
+    int fp = open("input.name", O_WRONLY | O_CREAT ,S_IRWXU |S_IRWXG|S_IRWXO );
+    
     if (fp == -1) {
         //fprintf( stderr, "Error is %s (errno=%d)\n", strerror( errno ), errno );
         //exit(EX_IOERR);
         //printf("1 - Error is %s (errno=%d)\n", strerror( errno ), errno );
         exiterror(fp,&tty_opts_backup);
     }
-    printf("Opening file input.name ");
+    printf("Opening file input.name \r\n");
     // go to end of file
     off_t offset;
     offset = lseek(fp, 0, SEEK_END);
+    printf("offset seek_end %d \r\n",offset);
     if (offset == -1) {
         exiterror(fp,&tty_opts_backup);
     }
@@ -165,15 +174,17 @@ int main(int argc, char *argv[]) {
             exiterror(fp,&tty_opts_backup);
         }
         printf("%d. 0x%02x (0%02o) %d\r\n", i++, c, c,c);
-        if (c==127 && hindex > 0) {
-            hindex--;
-            printf("Backspace %d\r\n",history[hindex]);
+        // backspace
+        if (c==127) {
+            
             // go back with lseek
             // but depending on character number of bytes varies
             // e.g : a -> one byte
             // é -> two bytes
-            int ksize = history[hindex];
+            // for filename we suppose every character is one byte
+            int ksize = 1;
             offset = lseek(fp,0-ksize,SEEK_CUR);
+            printf("offset back 1 %d \r\n",offset);
             if (offset == -1) {
                 perror("lseek 1 error");
                 exiterror(fp,&tty_opts_backup);
@@ -186,6 +197,7 @@ int main(int argc, char *argv[]) {
             }
             // go back again
             offset = lseek(fp,0-ksize,SEEK_CUR);
+            printf("offset back 2 %d \r\n",offset);
             if (offset == -1) {
                 perror("lseek 2 error");
                 exiterror(fp,&tty_opts_backup);
