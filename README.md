@@ -42,8 +42,10 @@ F6 : 27 91 49 55 126
 
 # Backup
 To enable backup to a remote ssh server, make sure to enable scp using key
+```
 cd .ssh
 ssh-copy-id -i id_rsa user@BACKUP_IP
+```
 
 # start program 
 see .bashrc file
